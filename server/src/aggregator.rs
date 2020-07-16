@@ -1,15 +1,10 @@
 use serde::{Deserialize, Serialize};
 use rocket_contrib::json::Json;
-use rocket::State;
-use postgres::Client;
-use validator::{Validate, ValidationError};
-use crate::store::{init, execute, Pool};
-use crate::context::Context;
-use std::sync::{Mutex};
+use crate::store::{execute};
 
 #[post("/simulationResult", data = "<result>")]
-pub fn init_simulation(result: Json<SimulationResult>, db: State<Mutex<Context>>) -> &'static str {
-    match result.insert(db.inner().lock().unwrap().database) {
+pub fn init_simulation(result: Json<SimulationResult>) -> &'static str {
+    match result.insert() {
         Ok(_) => "success",
         Err(err) => "error",
     }
@@ -20,25 +15,25 @@ static TABLE_NAME: &'static str = "results";
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SimulationResult {
-    id: Option<String>,
-    triggered_by: Option<String>,
-    branch_name: Option<String>,
-    start_timestamp: Option<i64>,
-    end_timestamp: Option<i64>,
-    commit_hash: Option<String>,
-    status: Option<String>, 
-    error_message: Option<String>,
-    short_description: Option<String>,
-    payload_data: Option<String>,
-    payload_text: Option<String>,
-    sequence_number: Option<i64>,
-    invalid: Option<String>,
-    created_at: Option<String>,
-    updated_at: Option<String>,
+    pub id: Option<String>,
+    pub triggered_by: Option<String>,
+    pub branch_name: Option<String>,
+    pub start_timestamp: Option<i64>,
+    pub end_timestamp: Option<i64>,
+    pub commit_hash: Option<String>,
+    pub status: Option<String>, 
+    pub error_message: Option<String>,
+    pub short_description: Option<String>,
+    pub payload_data: Option<String>,
+    pub payload_text: Option<String>,
+    pub sequence_number: Option<i8>,
+    pub invalid: Option<bool>,
+    pub created_at: Option<String>,
+    pub updated_at: Option<String>,
 }
 
 impl SimulationResult {
-    fn insert(&self, db: &Client) -> Result<(), String> {
+    pub fn insert(&self) -> Result<(), String> {
         let data = match self.prepare() {
             Ok(data) => data,
             Err(err) => return Err(err),
@@ -58,12 +53,10 @@ impl SimulationResult {
                 short_description,
                 payload_data,
                 payload_text,
-                sequence_number,
                 invalid
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12);
         "#, TABLE_NAME);
-        execute(
-            db,
+        let res = execute(
             &insert_query[..],
             &[
                 &data.id,
@@ -77,11 +70,13 @@ impl SimulationResult {
                 &data.short_description,
                 &data.payload_data,
                 &data.payload_text,
-                &data.sequence_number,
                 &data.invalid
                 // @TODO add created_at
             ],
         );
+        if res != String::from("done") {
+            return Err(res);
+        }
         Ok(())
     }
 
@@ -95,12 +90,10 @@ impl SimulationResult {
 #[cfg(test)]
 mod tests {
     use crate::aggregator;
-    use crate::store::init;
+    use std::time::{Instant};
 
     #[test]
     fn storage_put() {
-        let db = init();
-
         let res = aggregator::SimulationResult{
             id: Option::from(String::from("lalala")),
             triggered_by: Option::from(String::from("lalala")),
@@ -114,15 +107,17 @@ mod tests {
             payload_data: Option::from(String::from("lalala")),
             payload_text: Option::from(String::from("lalala")),
             sequence_number: Option::from(5),
-            invalid: Option::from(String::from("lalala")),
+            invalid: Option::from(false),
             created_at: Option::from(String::from("lalala")),
             updated_at: Option::from(String::from("lalala")),
         };
 
-        match res.insert(db) {
+        let now = Instant::now();
+        match res.insert() {
             Ok(_) => println!("ok"),
-            Err(err) => println!("{}", err),
+            Err(err) => println!("{:?}", err),
         }
-
+        
+        println!("{}", now.elapsed().as_nanos());
     }
 }
