@@ -10,8 +10,10 @@ use rocket::config::{Config, Environment};
 mod aggregator;
 mod store;
 mod context;
+mod mail;
 
 fn main() {
+    mail::send_mail();
     let config = match Config::build(Environment::Staging)
         .address("0.0.0.0")
         .port(8012)
