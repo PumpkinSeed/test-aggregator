@@ -15,21 +15,21 @@ static TABLE_NAME: &'static str = "results";
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SimulationResult {
-    pub id: Option<String>,
-    pub triggered_by: Option<String>,
-    pub branch_name: Option<String>,
-    pub start_timestamp: Option<i64>,
-    pub end_timestamp: Option<i64>,
-    pub commit_hash: Option<String>,
-    pub status: Option<String>, 
-    pub error_message: Option<String>,
-    pub short_description: Option<String>,
-    pub payload_data: Option<String>,
-    pub payload_text: Option<String>,
-    pub sequence_number: Option<i8>,
-    pub invalid: Option<bool>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    id: Option<String>,
+    triggered_by: Option<String>,
+    branch_name: Option<String>,
+    start_timestamp: Option<i64>,
+    end_timestamp: Option<i64>,
+    commit_hash: Option<String>,
+    status: Option<String>, 
+    error_message: Option<String>,
+    short_description: Option<String>,
+    payload_data: Option<String>,
+    payload_text: Option<String>,
+    sequence_number: Option<i8>,
+    invalid: Option<bool>,
+    created_at: Option<String>,
+    updated_at: Option<String>,
 }
 
 impl SimulationResult {
@@ -85,6 +85,8 @@ impl SimulationResult {
 
         Ok(self) // @TODO
     }
+
+    pub fn get() {}
 }
 
 #[cfg(test)]
@@ -117,7 +119,7 @@ mod tests {
             Ok(_) => println!("ok"),
             Err(err) => println!("{:?}", err),
         }
-        
+
         println!("{}", now.elapsed().as_nanos());
     }
 }
