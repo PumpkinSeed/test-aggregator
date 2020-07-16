@@ -1,14 +1,15 @@
 use serde::{Deserialize, Serialize};
 use rocket_contrib::json::Json;
 use rocket::State;
-use postgres::types::ToSql;
+use postgres::Client;
 use validator::{Validate, ValidationError};
 use crate::store::{init, execute, Pool};
-use crate::context;
+use crate::context::Context;
+use std::sync::{Mutex};
 
 #[post("/simulationResult", data = "<result>")]
-pub fn init_simulation(result: Json<SimulationResult>, db: State<context::Context>) -> &'static str {
-    match result.insert(db.inner().pool) {
+pub fn init_simulation(result: Json<SimulationResult>, db: State<Mutex<Context>>) -> &'static str {
+    match result.insert(db.inner().lock().unwrap().database) {
         Ok(_) => "success",
         Err(err) => "error",
     }
@@ -37,7 +38,7 @@ pub struct SimulationResult {
 }
 
 impl SimulationResult {
-    fn insert(&self, db: Pool) -> Result<(), String> {
+    fn insert(&self, db: &Client) -> Result<(), String> {
         let data = match self.prepare() {
             Ok(data) => data,
             Err(err) => return Err(err),

@@ -6,6 +6,7 @@
 #[macro_use] extern crate validator_derive;
 
 use rocket::config::{Config, Environment};
+use std::sync::{Mutex};
 
 mod aggregator;
 mod store;
@@ -23,9 +24,9 @@ fn main() {
 
     rocket::custom(config)
         .mount("/api", routes![aggregator::init_simulation])
-        .manage(context::Context{
-            pool: store::init(),
-        })
+        .manage(Mutex::new(context::Context{
+            database: store::init(),
+        }))
         .launch();
 
     println!("Hello, world!");
