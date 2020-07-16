@@ -1,0 +1,2 @@
+DROP DATABASE IF EXISTS simulator;
+CREATE DATABASE simulator;
