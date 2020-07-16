@@ -24,9 +24,12 @@ pub fn send_mail(to: &str,subject: &str,text: &str) -> Result<(),MailError> {
         .subject(subject)
         .text(text)
         .build();
-       let email = match email {
+    let email = match email {
           Ok(msg) => msg.into(),
-          Err(e) => return Err(MailError)
+          Err(e) => {
+                    eprintln!("{}",e);
+                    return Err(MailError)
+                    }
         };
     let credentials = (USERNAME, PASSWORD).into_credentials();
     let mut client = SmtpClient::new_simple(SMTP_ADDRESS)
