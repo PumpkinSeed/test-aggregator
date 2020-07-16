@@ -2,8 +2,10 @@
 // decl_macro:         https://github.com/rust-lang/rust/issues/39412
 #![feature(proc_macro_hygiene, decl_macro)]
 
-#[macro_use] extern crate rocket;
-#[macro_use] extern crate validator_derive;
+#[macro_use]
+extern crate rocket;
+#[macro_use]
+extern crate validator_derive;
 
 use rocket::config::{Config, Environment};
 

@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
+use crate::store::execute;
 use rocket_contrib::json::Json;
-use crate::store::{execute};
+use serde::{Deserialize, Serialize};
 
 #[post("/simulationResult", data = "<result>")]
 pub fn init_simulation(result: Json<SimulationResult>) -> &'static str {
@@ -21,7 +21,7 @@ pub struct SimulationResult {
     start_timestamp: Option<i64>,
     end_timestamp: Option<i64>,
     commit_hash: Option<String>,
-    status: Option<String>, 
+    status: Option<String>,
     error_message: Option<String>,
     short_description: Option<String>,
     payload_data: Option<String>,
@@ -38,9 +38,9 @@ impl SimulationResult {
             Ok(data) => data,
             Err(err) => return Err(err),
         };
-        
 
-        let insert_query = format!(r#"
+        let insert_query = format!(
+            r#"
             INSERT INTO {} (
                 id,
                 triggered_by,
@@ -55,7 +55,9 @@ impl SimulationResult {
                 payload_text,
                 invalid
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12);
-        "#, TABLE_NAME);
+        "#,
+            TABLE_NAME
+        );
         let res = execute(
             &insert_query[..],
             &[
@@ -70,8 +72,7 @@ impl SimulationResult {
                 &data.short_description,
                 &data.payload_data,
                 &data.payload_text,
-                &data.invalid
-                // @TODO add created_at
+                &data.invalid, // @TODO add created_at
             ],
         );
         if res != String::from("done") {
@@ -81,8 +82,6 @@ impl SimulationResult {
     }
 
     fn prepare(&self) -> Result<&Self, String> {
-        
-
         Ok(self) // @TODO
     }
 
@@ -92,18 +91,18 @@ impl SimulationResult {
 #[cfg(test)]
 mod tests {
     use crate::aggregator;
-    use std::time::{Instant};
+    use std::time::Instant;
 
     #[test]
     fn storage_put() {
-        let res = aggregator::SimulationResult{
+        let res = aggregator::SimulationResult {
             id: Option::from(String::from("lalala")),
             triggered_by: Option::from(String::from("lalala")),
             branch_name: Option::from(String::from("lalala")),
             start_timestamp: Option::from(1234451231),
             end_timestamp: Option::from(1234451236),
             commit_hash: Option::from(String::from("lalala")),
-            status: Option::from(String::from("lalala")), 
+            status: Option::from(String::from("lalala")),
             error_message: Option::from(String::from("lalala")),
             short_description: Option::from(String::from("lalala")),
             payload_data: Option::from(String::from("lalala")),
