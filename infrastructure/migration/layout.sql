@@ -43,7 +43,7 @@ CREATE TABLE results (
   status varchar(50) DEFAULT NULL,
   error_message varchar(250) DEFAULT NULL,
   short_description varchar(250) DEFAULT NULL,
-  payload_data json DEFAULT NULL,
+  payload_data text DEFAULT NULL,
   payload_text text,
   sequence_number SERIAL,
   invalid boolean DEFAULT '0',
