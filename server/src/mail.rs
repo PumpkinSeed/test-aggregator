@@ -4,8 +4,8 @@ use lettre_email::EmailBuilder;
 use std::env;
 use std::fmt;
 
-static USERNAME: &str = "anomaly.detector2020@gmail.com";
-static PASSWORD: &str = env!("PASSWORD","Missing password ENV");
+static MAILER_USERNAME: &str = "anomaly.detector2020@gmail.com";
+static MAILER_PASSWORD: &str = env!("MAILER_PASSWORD","Missing password ENV");
 static SMTP_ADDRESS: &str = "smtp.gmail.com";
 
 #[derive(Debug, Clone)]
@@ -20,7 +20,7 @@ impl fmt::Display for MailError {
 pub fn send_mail(to: &str,subject: &str,text: &str) -> Result<(),MailError> {
     let mut email = EmailBuilder::new()
         .to(to)
-        .from(USERNAME)
+        .from(MAILER_USERNAME)
         .subject(subject)
         .text(text)
         .build();
@@ -31,7 +31,7 @@ pub fn send_mail(to: &str,subject: &str,text: &str) -> Result<(),MailError> {
                     return Err(MailError)
                     }
         };
-    let credentials = (USERNAME, PASSWORD).into_credentials();
+    let credentials = (MAILER_USERNAME, MAILER_PASSWORD).into_credentials();
     let mut client = SmtpClient::new_simple(SMTP_ADDRESS)
         .unwrap()
         .credentials(credentials)
