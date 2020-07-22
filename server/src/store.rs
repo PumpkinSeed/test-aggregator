@@ -1,17 +1,5 @@
-use postgres::types::ToSql;
-use postgres::{Client, NoTls};
 
-pub fn execute(query: &str, params: &[&(dyn ToSql + Sync)]) -> String {
-    let connection_string = fetch_connection_string();
-    let mut db = Client::connect(&connection_string[..], NoTls).unwrap();
-
-    match db.execute(query, params) {
-        Ok(_) => format!("done"),
-        Err(e) => format!("ERROR: performing database operation: {}", e),
-    }
-}
-
-fn fetch_connection_string<'a>() -> String {
+pub fn fetch_connection_string<'a>() -> String {
     static ENV_HOST: &str = "PG_HOST";
     static ENV_PORT: &str = "PG_PORT";
     static ENV_USER: &str = "PG_USER";

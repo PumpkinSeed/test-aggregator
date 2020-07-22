@@ -8,8 +8,12 @@ extern crate rocket;
 extern crate validator_derive;
 
 use rocket::config::{Config, Environment};
-
-mod aggregator;
+mod simulation_result {
+    include!("routes/simulation_result.rs");
+}
+mod api_key {
+    include!("routes/api_key.rs");
+}
 mod store;
 
 fn main() {
@@ -23,7 +27,8 @@ fn main() {
     };
 
     rocket::custom(config)
-        .mount("/api", routes![aggregator::init_simulation])
+        .mount("/api", simulation_result::routes())
+        .mount("/api",api_key::routes())
         .launch();
 
     println!("Hello, world!");

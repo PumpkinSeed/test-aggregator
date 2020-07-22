@@ -12,6 +12,7 @@ serde = { version = "1.0", features = ["derive"] }
 postgres = "0.17.4"
 validator = "0.10"
 validator_derive = "0.10"
+uuid = { version = "0.8.1", features = ["serde", "v4"] }
 
 [dependencies.rocket_contrib]
 version = "0.4.5"
