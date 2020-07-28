@@ -1,71 +1,100 @@
-use rocket::http::Status;
-use rocket::response::status;
-use rocket_contrib::json::Json;
 use std::vec;
 
-mod model {
-    use rocket::config::Datetime;
-    include!("../models/api_key.rs");
-}
+use rocket::http::{ContentType, Header, Status};
+use rocket_contrib::json::Json;
+
+use crate::models::{api_key as model,response::ApiResponse};
 
 pub fn routes() -> std::vec::Vec<rocket::Route> {
-    // TODO routes![init_simulation,get_simulations,get_simulation,update_simulation,delete_simulation,invalidate_simulation]
     routes!(create,update,get_all,get_one,delete)
 }
 
 #[post("/apiKey", format = "application/json", data = "<api_key>")]
-pub fn create(api_key: Json<model::ApiKey>) -> status::Accepted<String> {
+pub fn create(api_key: Json<model::ApiKey>) -> ApiResponse {
     match api_key.insert() {
-        Ok(_) => status::Accepted(Some("success".to_string())),
+        Ok(()) => {
+            ApiResponse {
+                json: json!(""),
+                status: Status::Created,
+            }
+        }
         Err(err) => {
-            println!("{}", err.as_str());
-            status::Accepted(None)
+            ApiResponse {
+                json: json!(format!("{}",err)),
+                status: Status::InternalServerError,
+            }
         }
     }
 }
 
 #[put("/apiKey/<id>", format = "application/json", data = "<api_key>")]
-pub fn update(id: String, api_key: Json<model::ApiKey>) -> status::Accepted<String> {
+pub fn update(id: String, api_key: Json<model::ApiKey>) -> ApiResponse {
     match api_key.update(id) {
-        Ok(_) => status::Accepted(Some("success".to_string())),
+        Ok(()) => {
+            ApiResponse {
+                json: json!(""),
+                status: Status::Created,
+            }
+        }
         Err(err) => {
-            println!("{}", err.as_str());
-            status::Accepted(None)
+            ApiResponse {
+                json: json!(format!("{}",err)),
+                status: Status::NotFound,
+            }
         }
     }
 }
 
 #[get("/apiKey", format = "application/json")]
-pub fn get_all() -> Result<Json<Vec<model::ApiKey>>, status::NotFound<String>> {
+pub fn get_all() -> ApiResponse {
     match model::ApiKey::get_all() {
-        Ok(smt) => {
-            return Ok(Json(smt));
+        Ok(val) => {
+            ApiResponse {
+                json: json!(val),
+                status: Status::Ok,
+            }
         }
         Err(err) => {
-            Err(status::NotFound("Simulation results not found".to_string()))
+            ApiResponse {
+                json: json!("api key not found"),
+                status: Status::InternalServerError,
+            }
         }
     }
 }
 
 #[get("/apiKey/<id>", format = "application/json")]
-pub fn get_one(id: String) -> Result<Json<model::ApiKey>, status::NotFound<String>> {
+pub fn get_one(id: String) -> ApiResponse {
     match model::ApiKey::get(id) {
-        Ok(smt) => {
-            return Ok(Json(smt));
+        Ok(val) => {
+            ApiResponse {
+                json: json!(val),
+                status: Status::Ok,
+            }
         }
-        Err(e) => {
-            Err(status::NotFound("Simulation result not found".to_string()))
+        Err(err) => {
+            ApiResponse {
+                json: json!("api key not found"),
+                status: Status::NotFound,
+            }
         }
     }
 }
 
 #[delete("/apiKey/<id>", format = "application/json")]
-pub fn delete(id: String) -> status::Accepted<String> {
+pub fn delete(id: String) -> ApiResponse {
     match model::ApiKey::delete(id) {
-        Ok(_) => status::Accepted(Some("success".to_string())),
+        Ok(val) => {
+            ApiResponse {
+                json: json!(val),
+                status: Status::Ok,
+            }
+        }
         Err(err) => {
-            println!("{}", err.as_str());
-            status::Accepted(None)
+            ApiResponse {
+                json: json!("api key not found"),
+                status: Status::NotFound,
+            }
         }
     }
 }

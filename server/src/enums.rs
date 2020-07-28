@@ -75,6 +75,7 @@ pub enum UserRole {
     User,
 }
 
+// #[derive(Serialize, Deserialize, Debug)]
 impl UserRole {
     pub fn from_str(s: &str) -> Option<UserRole> {
         match s {
@@ -91,3 +92,50 @@ impl UserRole {
         }
     }
 }
+
+// use postgres_types::private::BytesMut;
+// use bytes::BytesMut;
+// use postgres_protocol::types;
+// use std::error::Error;
+//
+// use postgres_types::{FromSql,ToSql,IsNull,Type};
+//
+// impl<'a> FromSql<'a> for UserRole {
+//     fn from_sql(_: &Type, raw: &[u8]) -> Result<Option<UserRole>, Box<dyn Error + Sync + Send>> {
+//         let str = types::text_from_sql(raw)?;
+//         Ok(UserRole::from_str(str))
+//     }
+//
+//     fn from_sql_null(ty: &Type) -> Result<Self, Box<dyn Error + Sync + Send>> {
+//         Ok(UserRole::User) //TODO
+//     }
+//
+//     fn from_sql_nullable(ty: &Type, raw: Option<&'a [u8]>) -> Result<Self, Box<dyn Error + Sync + Send>> {
+//         Ok(UserRole)
+//     }
+//
+//     fn accepts(ty: &Type) -> bool {
+//         true
+//     }
+//
+//     // accepts!(User);
+// }
+//
+// impl ToSql for UserRole {
+//     fn to_sql(&self, _: &Type, w: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>> {
+//         types::text_to_sql(self.as_str(), w);
+//         Ok(IsNull::No)
+//     }
+//
+//     fn accepts(ty: &Type) -> bool where
+//         Self: Sized {
+//         true
+//     }
+//
+//     fn to_sql_checked(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>> {
+//         unimplemented!()
+//     }
+//
+//     // accepts!(UUID);
+//     // to_sql_checked!();
+// }

@@ -1,3 +1,26 @@
+use postgres::{Client, Error, NoTls, Row};
+use postgres::types::ToSql;
+
+pub fn execute(query: &str, params: &[&(dyn ToSql + Sync)]) -> Result<u64, Error> {
+    let connection_string = fetch_connection_string();
+    let mut db = Client::connect(&connection_string[..], NoTls).unwrap();
+
+    db.execute(query, params)
+}
+
+pub fn query_all(query: &str, params: &[&(dyn ToSql + Sync)]) -> Result<Vec<Row>, Error> {
+    let connection_string = fetch_connection_string();
+    let mut db = Client::connect(&connection_string[..], NoTls).unwrap();
+
+    db.query(query, params)
+}
+
+pub fn query_one(query: &str, params: &[&(dyn ToSql + Sync)]) -> Result<Row, Error> {
+    let connection_string = fetch_connection_string();
+    let mut db = Client::connect(&connection_string[..], NoTls).unwrap();
+
+    db.query_one(query, params)
+}
 
 pub fn fetch_connection_string<'a>() -> String {
     static ENV_HOST: &str = "PG_HOST";

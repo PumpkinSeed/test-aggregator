@@ -1,17 +1,16 @@
 use postgres::{Error, Row};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+
+use crate::repository::store::{execute, query_all, query_one};
+
 mod enums {
     include!("../enums.rs");
 }
 
-// use crate::store::{execute, query_all, query_one};
-mod store {
-    include!("../repository/simulation_result.rs");
-}
-
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SimulationResult {
+    //TODO created_at,updated_at
     id: Option<String>,
     triggered_by: Option<String>,
     branch_name: Option<String>,
@@ -32,10 +31,10 @@ pub struct SimulationResult {
 static TABLE_NAME: &'static str = "results";
 
 impl SimulationResult {
-    pub fn insert(&self) -> Result<(), String> {
+    pub fn insert(&self) -> Result<(), Error> {
         let data = match self.prepare() {
             Ok(data) => data,
-            Err(err) => return Err(err),
+            Err(err) => return Ok(()) // TODO return Err(err),
         };
 
         let insert_query = format!(
@@ -57,7 +56,7 @@ impl SimulationResult {
         "#,
             TABLE_NAME
         );
-        let res = store::execute(
+        match execute(
             &insert_query[..],
             &[
                 &Uuid::new_v4().to_string(),
@@ -73,23 +72,27 @@ impl SimulationResult {
                 &data.payload_text,
                 &data.invalid, // @TODO add created_at
             ],
-        );
-        if res != String::from("done") {
-            return Err(res);
+        ) {
+            Ok(_num) => {
+                Ok(())
+            }
+            Err(error) => {
+                // TODO handle error properly
+                Err(error)
+            }
         }
-        Ok(())
     }
 
-    pub fn update(&self, id: String) -> Result<(), String> {
+    pub fn update(&self, id: String) -> Result<(), Error> {
         let data = match self.prepare() {
             Ok(data) => data,
-            Err(err) => return Err(err),
+            Err(err) => return Ok(()) // TODO return Err(err),
         };
 
         let update_query = format!(
             "UPDATE {} SET triggered_by = $1, branch_name = $2, start_timestamp = $3, end_timestamp = $4, commit_hash = $5, status = $6, error_message = $7, short_description = $8, payload_data = $9, payload_text = $10, invalid = $11 WHERE id='{}';",
             TABLE_NAME, id);
-        let res = store::execute(
+        match execute(
             &update_query[..],
             &[
                 &data.triggered_by,
@@ -104,15 +107,10 @@ impl SimulationResult {
                 &data.payload_text,
                 &data.invalid, // @TODO add created_at
             ],
-        );
-        if res != String::from("done") {
-            return Err(res);
+        ) {
+            Ok(_val) => Ok(()),
+            Err(error) => Err(error)
         }
-        Ok(())
-    }
-
-    fn prepare(&self) -> Result<&Self, String> {
-        Ok(self) // @TODO
     }
 
     pub fn get_all() -> Result<Vec<SimulationResult>, Error> {
@@ -122,7 +120,7 @@ impl SimulationResult {
         "#,
             TABLE_NAME
         );
-        let res = match store::query_all(&query_str[..], &[]) {
+        let res = match query_all(&query_str[..], &[]) {
             Ok(val) => val,
             Err(e) => return Err(e),
         };
@@ -200,7 +198,7 @@ impl SimulationResult {
             r#"SELECT * FROM {} WHERE id='{}';"#,
             TABLE_NAME, id
         );
-        let row = match store::query_one(&query_str[..], &[]) {
+        let row = match query_one(&query_str[..], &[]) {
             Ok(val) => val,
             Err(e) => return Err(e),
         };
@@ -269,38 +267,38 @@ impl SimulationResult {
         return Ok(sim_res);
     }
 
-    pub fn delete(id: String) -> Result<(), String> {
+    pub fn delete(id: String) -> Result<(), Error> {
         let delete_query = format!(
             "DELETE FROM {} WHERE id='{}';",
             TABLE_NAME, id
         );
-        let res = store::execute(
+        match execute(
             &delete_query[..],
             &[],
-        );
-        if res != String::from("done") {
-            return Err(res);
+        ) {
+            Ok(_val) => Ok(()),
+            Err(error) => Err(error)
         }
-        Ok(())
     }
 
-    pub fn invalidate(&self, id: String) -> Result<(), String> {
+    pub fn invalidate(&self, id: String) -> Result<(), Error> {
         let data = match self.prepare() {
             Ok(data) => data,
-            Err(err) => return Err(err),
+            Err(err) => return Ok(()) //return Err(err),
         };
 
-        let update_query = format!(
-            "UPDATE {} SET status = '{}' WHERE id='{}';",
-            TABLE_NAME, enums::SimulationResultValidity::Invalid.as_str(), id);
-        let res = store::execute(
+        let update_query = format!("UPDATE {} SET status = '{}' WHERE id='{}';", TABLE_NAME, enums::SimulationResultValidity::Invalid.as_str(), id);
+        match execute(
             &update_query[..],
             &[],
-        );
-        if res != String::from("done") {
-            return Err(res);
+        ) {
+            Ok(_val) => Ok(()),
+            Err(error) => Err(error)
         }
-        Ok(())
+    }
+
+    fn prepare(&self) -> Result<&Self, String> {
+        Ok(self) // @TODO
     }
 }
 

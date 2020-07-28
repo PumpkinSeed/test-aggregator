@@ -1,53 +1,60 @@
+use std::ops::Add;
+
+use chrono::{Duration, NaiveDate, NaiveDateTime, Utc};
 use postgres::{Error, Row};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-mod enums {
-    include!("../enums.rs");
-}
-
-mod store {
-    include!("../repository/simulation_result.rs");
-}
+use crate::repository::store::{execute, query_all, query_one};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ApiKey {
-    id: Option<i8>,
+    id: Option<i32>,
     key: Option<String>,
-    expires_at: Option<String>,
-    created_at: Option<String>,
+    expires_at: Option<NaiveDateTime>,
+    created_at: Option<NaiveDateTime>,
 }
 
 static TABLE_NAME: &'static str = "api_keys";
+const EXPIRATION_IN_YEARS: i32 = 500;
 
 impl ApiKey {
-    pub fn insert(&self) -> Result<(), String> {
+    pub fn insert(&self) -> Result<(), Error> {
         let data = match self.prepare() {
             Ok(data) => data,
-            Err(err) => return Err(err),
+            Err(err) => return Ok(())// TODO
         };
-        // let insert_query = format!("INSERT INTO {} (id,key,created_at,expires_at) VALUES ($1, $2, $3,$4);", TABLE_NAME);
-        let insert_query = format!("INSERT INTO {} (key) VALUES ($1);", TABLE_NAME);
-        let res = store::execute(&insert_query[..], &[
-            // &data.id,
-            &data.key,
-            // &data.expires_at, // TODO
-            // &data.created_at, // TODO
-        ]);
-        if res != String::from("done") {
-            return Err(res);
+
+        let insert_query = format!("INSERT INTO {} (key,created_at,expires_at) VALUES ( $1,$2,$3);", TABLE_NAME);
+        match execute(&insert_query[..], &[&data.key, &Utc::now().naive_local(), &(Utc::now()  + Duration::days((EXPIRATION_IN_YEARS * 60) as i64)).naive_local()]) { // TODO expires_at
+            Ok(_num) => {
+                Ok(())
+            }
+            Err(error) => {
+                // TODO handle error properly
+                Err(error)
+            }
         }
-        Ok(())
+    }
+
+    pub fn update(&self, id: String) -> Result<(), Error> {
+        let mut data = match self.prepare() {
+            Ok(data) => data,
+            Err(err) => return Ok(()) // TODOreturn Err(err),
+        };
+
+        let update_query = format!("UPDATE {} SET key = $1, expires_at = $2, created_at = $3  WHERE id='{}';", TABLE_NAME, id);
+        match execute(&update_query[..], &[&data.key, &data.expires_at, &data.created_at, ]) {
+            Ok(_val) => Ok(()),
+            Err(error) => Err(error)
+        }
     }
 
     pub fn get_all() -> Result<Vec<ApiKey>, Error> {
         let query_str = format!(
-            r#"
-            SELECT * FROM {};
-        "#,
-            TABLE_NAME
-        );
-        let res = match store::query_all(&query_str[..], &[]) {
+            "SELECT * FROM {};", TABLE_NAME);
+
+        let res = match query_all(&query_str[..], &[]) {
             Ok(val) => val,
             Err(e) => return Err(e),
         };
@@ -77,11 +84,8 @@ impl ApiKey {
     }
 
     pub fn get(id: String) -> Result<ApiKey, Error> {
-        let query_str = format!(
-            r#"SELECT * FROM {} WHERE id='{}';"#,
-            TABLE_NAME, id
-        );
-        let row = match store::query_one(&query_str[..], &[]) {
+        let query_str = format!("SELECT * FROM {} WHERE id='{}';", TABLE_NAME, id);
+        let row = match query_one(&query_str[..], &[]) {
             Ok(val) => val,
             Err(e) => return Err(e),
         };
@@ -106,45 +110,25 @@ impl ApiKey {
         return Ok(sim_res);
     }
 
-    pub fn delete(id: String) -> Result<(), String> {
+    pub fn delete(id: String) -> Result<(), Error> {
         let delete_query = format!(
             "DELETE FROM {} WHERE id='{}';",
             TABLE_NAME, id
         );
-        let res = store::execute(
-            &delete_query[..],
-            &[],
-        );
-        if res != String::from("done") {
-            return Err(res);
+        match execute(&delete_query[..], &[]) {
+            Ok(_val) => Ok(()),
+            Err(error) => Err(error)
         }
-        Ok(())
-    }
-
-    pub fn update(&self, id: String) -> Result<(), String> {
-        let data = match self.prepare() {
-            Ok(data) => data,
-            Err(err) => return Err(err),
-        };
-
-        let update_query = format!(
-            "UPDATE {} SET key = $1, expires_at = $2, created_at = $3  WHERE id='{}';",
-            TABLE_NAME, id);
-        let res = store::execute(
-            &update_query[..],
-            &[
-                &data.key,
-                &data.expires_at,
-                &data.created_at,
-            ],
-        );
-        if res != String::from("done") {
-            return Err(res);
-        }
-        Ok(())
     }
 
     fn prepare(&self) -> Result<&Self, String> {
         Ok(self)
     } // @TODO
+
+    fn update_expiration(&mut self) {
+        match self.expires_at {
+            Some(mut val) => val = val + Duration::days((EXPIRATION_IN_YEARS * 365) as i64),
+            None => ()
+        }
+    }
 }
