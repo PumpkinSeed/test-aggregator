@@ -3,6 +3,8 @@ use std::ops::Add;
 use chrono::{Duration, NaiveDate, NaiveDateTime, Utc};
 use postgres::{Error, Row};
 use serde::{Deserialize, Serialize};
+use simplestore::F;
+use simplestore::Store;
 use uuid::Uuid;
 
 use crate::repository::store::{execute, query_all, query_one};
@@ -24,16 +26,13 @@ impl ApiKey {
             Ok(data) => data,
             Err(err) => return Ok(())// TODO
         };
-
-        let insert_query = format!("INSERT INTO {} (key,created_at,expires_at) VALUES ( $1,$2,$3);", TABLE_NAME);
-        match execute(&insert_query[..], &[&data.key, &Utc::now().naive_local(), &(Utc::now()  + Duration::days((EXPIRATION_IN_YEARS * 60) as i64)).naive_local()]) { // TODO expires_at
-            Ok(_num) => {
-                Ok(())
-            }
-            Err(error) => {
-                // TODO handle error properly
-                Err(error)
-            }
+        let p = serde_json::to_string(&data).unwrap();
+        let ok = Store::new().put(TABLE_NAME, Uuid::new_v4().to_simple().to_string().as_str(), p);
+        if ok {
+            Ok(())
+        } else {
+            // TODO
+            Ok(())
         }
     }
 
@@ -43,71 +42,43 @@ impl ApiKey {
             Err(err) => return Ok(()) // TODOreturn Err(err),
         };
 
-        let update_query = format!("UPDATE {} SET key = $1, expires_at = $2, created_at = $3  WHERE id='{}';", TABLE_NAME, id);
-        match execute(&update_query[..], &[&data.key, &data.expires_at, &data.created_at, ]) {
-            Ok(_val) => Ok(()),
-            Err(error) => Err(error)
+        let p = serde_json::to_string(&data).unwrap();
+        let ok = Store::new().put(TABLE_NAME, id.as_str(), p);
+        if ok {
+            Ok(())
+        } else {
+            // TODO
+            Ok(())
         }
     }
 
     pub fn get_all() -> Result<Vec<ApiKey>, Error> {
-        let query_str = format!(
-            "SELECT * FROM {};", TABLE_NAME);
+        let mut result: Vec<ApiKey> = Vec::new();
 
-        let res = match query_all(&query_str[..], &[]) {
-            Ok(val) => val,
-            Err(e) => return Err(e),
-        };
-        let mut results: Vec<ApiKey> = Vec::new();
-        for row in res {
-            let sim_res = ApiKey {
-                id: match row.try_get(0) {
-                    Ok(val) => Some(val),
-                    Err(_) => None,
-                },
-                key: match row.try_get(1) {
-                    Ok(val) => Some(val),
-                    Err(_) => None,
-                },
-                expires_at: match row.try_get(2) {
-                    Ok(val) => Some(val),
-                    Err(_) => None,
-                },
-                created_at: match row.try_get(3) {
-                    Ok(val) => Some(val),
-                    Err(_) => None,
-                },
-            };
-            results.push(sim_res);
+        match Store::new().fetch(TABLE_NAME) {
+            Ok(val) => {
+                for (id, val) in val.iter() {
+                    println!("Calling {}: {}", id, val);
+                    result.push(serde_json::from_str(val).unwrap())
+                }
+                Ok(result)
+            }
+            Err(e) => Ok(result) // TODO
         }
-        Ok(results)
     }
 
     pub fn get(id: String) -> Result<ApiKey, Error> {
-        let query_str = format!("SELECT * FROM {} WHERE id='{}';", TABLE_NAME, id);
-        let row = match query_one(&query_str[..], &[]) {
-            Ok(val) => val,
-            Err(e) => return Err(e),
-        };
-        let sim_res = ApiKey {
-            id: match row.try_get(0) {
-                Ok(val) => Some(val),
-                Err(_) => None,
-            },
-            key: match row.try_get(1) {
-                Ok(val) => Some(val),
-                Err(_) => None,
-            },
-            expires_at: match row.try_get(2) {
-                Ok(val) => Some(val),
-                Err(_) => None,
-            },
-            created_at: match row.try_get(3) {
-                Ok(val) => Some(val),
-                Err(_) => None,
-            },
-        };
-        return Ok(sim_res);
+        match Store::new().get(TABLE_NAME, id.as_str()) {
+            Ok(val) => {
+                Ok(serde_json::from_str(val.as_str()).unwrap())
+            }
+            Err(e) => Ok(ApiKey{
+                id: None,
+                key: None,
+                expires_at: None,
+                created_at: None
+            }) // TODO
+        }
     }
 
     pub fn delete(id: String) -> Result<(), Error> {
@@ -130,5 +101,72 @@ impl ApiKey {
             Some(mut val) => val = val + Duration::days((EXPIRATION_IN_YEARS * 365) as i64),
             None => ()
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::time::{Duration, Instant};
+    use chrono::{NaiveDate, NaiveDateTime, Utc};
+
+    use simplestore::F;
+    use simplestore::Store;
+    use crate::models::api_key::{ApiKey, TABLE_NAME};
+
+    #[test]
+    fn test_put_get() -> Result<(), serde_json::Error> {
+        let s = Store { store_dir: "./simplestore" };
+        let api_key = ApiKey {
+            id: Some(1),
+            key: Some("123key".to_string()),
+            expires_at: Some(Utc::now().naive_local()),
+            created_at: Some(Utc::now().naive_local()),
+        };
+        let start = Instant::now();
+        s.put(TABLE_NAME, "12345", serde_json::to_string(&api_key).unwrap());
+
+        let duration = start.elapsed();
+
+        println!("Time elapsed in s.put() is: {:?}", duration);
+
+        let start = Instant::now();
+        match s.get(TABLE_NAME, "12345") {
+            Ok(data) => {
+                let res: ApiKey = serde_json::from_str(data.as_str())?;
+                println!("{:?}",api_key);
+            },
+            Err(err) => println!("{}", err),
+        }
+        println!("Time elapsed in s.get() is: {:?}", duration);
+        Ok(())
+    }
+
+    #[test]
+    fn test_update_api_key() -> Result<(), serde_json::Error> {
+        let s = Store { store_dir: "./simplestore" };
+        let api_key = ApiKey {
+            id: Some(1),
+            key: Some("123key".to_string()),
+            expires_at: Some(Utc::now().naive_local()),
+            created_at: Some(Utc::now().naive_local()),
+        };
+        s.put(TABLE_NAME, "999", serde_json::to_string(&api_key).unwrap());
+
+        let api_key = ApiKey {
+            id: Some(1),
+            key: Some("ASD".to_string()),
+            expires_at: Some(Utc::now().naive_local()),
+            created_at: Some(Utc::now().naive_local()),
+        };
+        s.put(TABLE_NAME, "999", serde_json::to_string(&api_key).unwrap());
+
+        match s.get(TABLE_NAME, "999") {
+            Ok(data) => {
+                let res: ApiKey = serde_json::from_str(data.as_str())?;
+                println!("{:?}",api_key);
+            },
+            Err(err) => println!("{}", err),
+        }
+        Ok(())
     }
 }

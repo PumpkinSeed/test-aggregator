@@ -302,41 +302,41 @@ impl SimulationResult {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use std::time::Instant;
-
-    // mod model {
-    //     include!("../models/simulation_result");
-    // }
-    use crate::aggregator;
-
-    #[test]
-    fn storage_put() {
-        let res = model::SimulationResult {
-            id: Option::from(String::from("lalala")),
-            triggered_by: Option::from(String::from("lalala")),
-            branch_name: Option::from(String::from("lalala")),
-            start_timestamp: Option::from(1234451231),
-            end_timestamp: Option::from(1234451236),
-            commit_hash: Option::from(String::from("lalala")),
-            status: Option::from(String::from("lalala")),
-            error_message: Option::from(String::from("lalala")),
-            short_description: Option::from(String::from("lalala")),
-            payload_data: Option::from(String::from("lalala")),
-            payload_text: Option::from(String::from("lalala")),
-            sequence_number: Option::from(5),
-            invalid: Option::from(false),
-            created_at: Option::from(String::from("lalala")),
-            updated_at: Option::from(String::from("lalala")),
-        };
-
-        let now = Instant::now();
-        match res.insert() {
-            Ok(_) => println!("ok"),
-            Err(err) => println!("{:?}", err),
-        }
-
-        println!("{}", now.elapsed().as_nanos());
-    }
-}
+// #[cfg(test)]
+// mod tests {
+//     use std::time::Instant;
+//
+//     // mod model {
+//     //     include!("../models/simulation_result");
+//     // }
+//     use crate::aggregator;
+//
+//     #[test]
+//     fn storage_put() {
+//         let res = model::SimulationResult {
+//             id: Option::from(String::from("lalala")),
+//             triggered_by: Option::from(String::from("lalala")),
+//             branch_name: Option::from(String::from("lalala")),
+//             start_timestamp: Option::from(1234451231),
+//             end_timestamp: Option::from(1234451236),
+//             commit_hash: Option::from(String::from("lalala")),
+//             status: Option::from(String::from("lalala")),
+//             error_message: Option::from(String::from("lalala")),
+//             short_description: Option::from(String::from("lalala")),
+//             payload_data: Option::from(String::from("lalala")),
+//             payload_text: Option::from(String::from("lalala")),
+//             sequence_number: Option::from(5),
+//             invalid: Option::from(false),
+//             created_at: Option::from(String::from("lalala")),
+//             updated_at: Option::from(String::from("lalala")),
+//         };
+//
+//         let now = Instant::now();
+//         match res.insert() {
+//             Ok(_) => println!("ok"),
+//             Err(err) => println!("{:?}", err),
+//         }
+//
+//         println!("{}", now.elapsed().as_nanos());
+//     }
+// }
