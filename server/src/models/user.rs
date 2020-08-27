@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use chrono::{Duration, NaiveDate, NaiveDateTime, Utc};
 use crate::repository::store::{execute, query_all, query_one};
+use simplestore::Store;
 
 mod enums {
     include!("../enums.rs");
@@ -25,34 +26,27 @@ pub struct User {
 static TABLE_NAME: &'static str = "users";
 
 impl User {
+    pub fn default() -> User {
+        User{
+            id: Option::from(String::from("")),
+            password_hash:  Option::from(String::from("")),
+            email:  Option::from(String::from("")),
+            git_user:  Option::from(String::from("")),
+            role: Option::from(String::from("")),
+            notification: Option::from(false),
+            created_at: Option::from(Utc::now().naive_utc()),
+            updated_at: Option::from(Utc::now().naive_utc()),
+        }
+    }
+
     pub fn insert(&self) -> Result<(), Error> {
         let data = match self.prepare() {
             Ok(data) => data,
             Err(err) => return Ok(()) // TODO return Err(err),
         };
-
-        let insert_query = format!("INSERT INTO {} (id,password_hash, email, git_user, notification, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7);", TABLE_NAME);
-        match execute(
-            &insert_query[..],
-            &[
-                &Uuid::new_v4().to_string(),
-                &data.password_hash,
-                &data.email,
-                &data.git_user,
-                &data.notification,
-                &Utc::now().naive_local(),
-                &Utc::now().naive_local(),
-            ],
-        ) {
-            Ok(_num) => {
-                Ok(())
-            }
-            Err(error) => {
-                // TODO handle error properly
-                Err(error)
-            }
-        }
-    }
+        let p = serde_json::to_string(data);
+        Ok(())
+   }
 
     pub fn update(&self, id: String) -> Result<(), Error> {
         let data = match self.prepare() {
@@ -261,4 +255,15 @@ impl User {
     //     };
     //     return Ok(user);
     // }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_insert() {
+        let u = User::default();    
+        u.insert();
+    }
 }
