@@ -6,11 +6,17 @@
 extern crate rocket;
 #[macro_use]
 extern crate validator_derive;
+#[macro_use]
+extern crate rocket_contrib;
+#[macro_use]
+extern crate serde_derive;
 
 use rocket::config::{Config, Environment};
 
-mod aggregator;
-mod store;
+mod repository;
+mod models;
+mod routes;
+mod enums;
 
 fn main() {
     let config = match Config::build(Environment::Staging)
@@ -23,7 +29,10 @@ fn main() {
     };
 
     rocket::custom(config)
-        .mount("/api", routes![aggregator::init_simulation])
+        .mount("/api", routes::simulation_result::routes())
+        .mount("/api",routes::api_key::routes())
+        .mount("/api",routes::user::routes())
+        // .mount("/api",mailer::routes())
         .launch();
 
     println!("Hello, world!");
